@@ -51,6 +51,10 @@ class Rankine_cycle(object):
         self.eta_gen            = parameters['eta_gen']     # steam generator efficiency        [-]
         self.k_gen              = parameters['k_gen']       # pressure losses coeff. in s. gen. [-]
         self.fluid              = parameters['fluid']       # fluid (e.g. 'H2O')
+
+    # def cpComputation(T1, T2, p1, p2, fluid)
+    #     # compute your cp by using a constant pressure that is equal to the mean value of pressure at temperature 1 and pressure at temperature 2
+    #     cp = 
         
     def evaluate(self):
         """
@@ -69,35 +73,44 @@ class Rankine_cycle(object):
         #eta_pump, eta_is_t, eta_mec_t, eta_gen, k_gen
 
         #state 1
-        self.p_1 = PropsSI('P','T', self.T_1 + 3,'Q',0,self.fluid) #+3K because T_1 is subcooled
+        self.p_1 = PropsSI('P','T', self.T_1 ,'Q',0,self.fluid) #+3K because T_1 is subcooled
         self.h_1 = PropsSI('H','T', self.T_1,'Q',0,self.fluid)
         self.s_1 = PropsSI('S','T', self.T_1,'Q',0,self.fluid)
-        self.x_1 = PropsSI('Q','T', self.T_1,'P',self.p_1,self.fluid) #x_1 = 0
-        print(self.x_1)
+        #self.x_1 = PropsSI('Q','T', self.T_1,'P',self.p_1,self.fluid) #x_1 = 0
+        self.x_1 = 0
+        #print(PropsSI('Q','T', self.T_1,'P',self.p_1,self.fluid))
 
         #state 1 -> state 2 (compression, pump is represented with the internal efficiency model)
-        self.p_2 = self.p_3 * self.k_gen #pressure loss in the steam generator
-        self.T_2 = self.T_1 + PropsSI('V','T',self.T_1,'P',self.p_1,self.fluid)*(self.p_2-self.p_1)/PropsSI('CPMASS','T',self.T_1,'P',self.p_1,self.fluid)*(1/self.eta_pump - 1) #liq incompressible ... => delta T = v*delta P/cp *(1/eta_pump - 1)
+        self.p_2 = self.p_3 / self.k_gen #pressure loss in the steam generator
+        delta_T  = ((PropsSI('V','T',self.T_1,'P',self.p_1,self.fluid) * (self.p_2 - self.p_1)) / PropsSI('CPMASS','T',self.T_1,'P',(self.p_1 + self.p_2)/2,self.fluid)) * (1/self.eta_pump -1)
+        self.T_2 = self.T_1 + delta_T
+   
         self.h_2 = PropsSI('H','T',self.T_2,'P',self.p_2,self.fluid)
         self.s_2 = PropsSI('S','T',self.T_2,'P',self.p_2,self.fluid)
         self.x_2 = PropsSI('Q','T',self.T_2,'P',self.p_2,self.fluid) #x_2 = [-]
-        print(self.x_2)
+        #print(self.x_2)
 
         #state 2 -> state 3 (steam generator)
         self.h_3 = PropsSI('H','T',self.T_3,'P',self.p_3,self.fluid)
         self.s_3 = PropsSI('S','T',self.T_3,'P',self.p_3,self.fluid)
         self.x_3 = PropsSI('Q','T',self.T_3,'P',self.p_3,self.fluid) #x_3 = [-]
-        print(self.x_3)
+        #print(self.x_3)
 
         #state 3 -> state 4 (expansion, Adiabatic expansion in the turbine
         #down to the saturation pressure (use the isentropic model),
         #The mechanical efficiency of the turbine is taken into account)
         self.T_4 = self.T_1 + 3
-        self.p_4 = PropsSI('P','T',self.T_4,'Q',1,self.fluid)
-        self.h_4 = PropsSI('H','T',self.T_4,'Q',1,self.fluid)
-        self.s_4 = PropsSI('S','T',self.T_4,'Q',1,self.fluid)
-        self.x_4 = PropsSI('Q','T',self.T_4,'P',self.p_4,self.fluid) #x_4 = 1
-        print(self.x_4)
+        s4s = self.s_3
+        x4s= (s4s - PropsSI('S','T',self.T_4,'Q',0,self.fluid)) / (PropsSI('S','T',self.T_4,'Q',1,self.fluid)-PropsSI('S','T',self.T_4,'Q',0,self.fluid))
+        h4s = PropsSI('H','T',self.T_4,'Q',x4s,self.fluid)
+        h4 = self.h_3 - self.eta_is_t*(self.h_3-h4s)
+        self.p_4 = PropsSI('P','T',self.T_4,'Q',x4s,self.fluid)
+        self.h_4 = h4
+        self.s_4 = PropsSI('S','T',self.T_4,'Q',x4s,self.fluid)
+        self.x_4 = x4s
+       
+        #print(self.x_4)
+        #print(PropsSI('Q','T',300,'P',100000,self.fluid))
 
         # ...
         # ...
@@ -116,3 +129,4 @@ class Rankine_cycle(object):
         self.h = (self.h_1, self.h_2, self.h_3, self.h_4)
         self.x = (self.x_1, self.x_2, self.x_3, self.x_4)
         self.states = (self.p,self.T,self.s,self.h,self.x)
+
