@@ -103,11 +103,10 @@ class Rankine_cycle(object):
         s4s = self.s_3
         x4s= (s4s - PropsSI('S','T',self.T_4,'Q',0,self.fluid)) / (PropsSI('S','T',self.T_4,'Q',1,self.fluid)-PropsSI('S','T',self.T_4,'Q',0,self.fluid))
         h4s = PropsSI('H','T',self.T_4,'Q',x4s,self.fluid)
-        h4 = self.h_3 - self.eta_is_t*(self.h_3-h4s)
-        self.p_4 = PropsSI('P','T',self.T_4,'Q',x4s,self.fluid)
-        self.h_4 = h4
-        self.s_4 = PropsSI('S','T',self.T_4,'Q',x4s,self.fluid)
-        self.x_4 = x4s
+        self.h_4 = self.h_3 - self.eta_is_t*(self.h_3-h4s)
+        self.x_4 = (self.h_4 - PropsSI('H','T',self.T_4,'Q',0,self.fluid)) / (PropsSI('H','T',self.T_4,'Q',1,self.fluid)-PropsSI('H','T',self.T_4,'Q',0,self.fluid))
+        self.p_4 = PropsSI('P','T',self.T_4,'Q',self.x_4,self.fluid)
+        self.s_4 = PropsSI('S','T',self.T_4,'Q',self.x_4,self.fluid)
        
         #print(self.x_4)
         #print(PropsSI('Q','T',300,'P',100000,self.fluid))
